@@ -283,6 +283,11 @@ func (e *Event) GetDataLen() uint32 {
 	return uint32(e.DataLen)
 }
 
+// GetFd returns the file descriptor.
+func (e *Event) GetFd() uint32 {
+	return e.Fd
+}
+
 // GetTimestamp returns the event timestamp.
 func (e *Event) GetTimestamp() uint64 {
 	return e.Timestamp

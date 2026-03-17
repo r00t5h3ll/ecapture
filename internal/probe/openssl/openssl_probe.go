@@ -356,6 +356,38 @@ func (p *Probe) setupManagerText() error {
 	return nil
 }
 
+// setupManagerHar configures the probe for HAR mode.
+// Reuses the same eBPF probes as text mode (SSL_read/SSL_write + connect tracking),
+// and additionally registers a HarHandler that correlates HTTP request/response pairs
+// and POSTs them as HarEntry JSON to the configured endpoint.
+func (p *Probe) setupManagerHar() error {
+	// HAR mode uses the same eBPF probes as text mode
+	if err := p.setupManagerText(); err != nil {
+		return err
+	}
+
+	// Create HTTP POST writer targeting the HAR endpoint
+	harWriter, err := writers.NewHttpPostWriter(p.config.HarEndpoint)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP POST writer for HAR mode: %w", err)
+	}
+
+	// Create and register HarHandler
+	harHandler := handlers.NewHarHandler(harWriter, p.config.HarFilterHost)
+	if err := p.BaseProbe.Dispatcher().Register(harHandler); err != nil {
+		_ = harWriter.Close()
+		return fmt.Errorf("failed to register HAR handler: %w", err)
+	}
+	p.closer = append(p.closer, harHandler)
+
+	p.Logger().Info().
+		Str("endpoint", p.config.HarEndpoint).
+		Str("filter_host", p.config.HarFilterHost).
+		Msg("HAR handler registered")
+
+	return nil
+}
+
 func (p *Probe) setupManagerPcapNG() error {
 	opensslPath := p.config.OpensslPath
 	var probes []*manager.Probe
@@ -551,6 +583,8 @@ func (p *Probe) setupManager() error {
 			ebpfFuncs := []string{base.TcFuncNameIngress, base.TcFuncNameEgress}
 			p.bpfManager.InstructionPatchers = pkgebpf.PrepareInsnPatchers(p.bpfManager, ebpfFuncs, p.config.PcapFilter)
 		}
+	case handlers.ModeHar:
+		err = p.setupManagerHar()
 	}
 	if err != nil {
 		return err

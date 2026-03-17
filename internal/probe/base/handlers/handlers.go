@@ -7,6 +7,7 @@ const (
 	ModePcapng = "pcapng"
 	ModeKeylog = "keylog"
 	ModeKey    = "key"
+	ModeHar    = "har"
 )
 
 // IsModeText checks if the mode is text
@@ -22,4 +23,9 @@ func IsModePcapng(mode string) bool {
 // IsModeKeylog checks if the mode is keylog or key
 func IsModeKeylog(mode string) bool {
 	return mode == ModeKeylog || mode == ModeKey
+}
+
+// IsModeHar checks if the mode is har
+func IsModeHar(mode string) bool {
+	return mode == ModeHar
 }

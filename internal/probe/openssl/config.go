@@ -59,6 +59,10 @@ type Config struct {
 	SslBpfFile      string   `json:"sslbpffile"`      // Path to the eBPF object file for the detected OpenSSL version
 	IsAndroid       bool     `json:"is_android"`      // Whether the target system is Android (for Android-specific handling)
 	AndroidVer      string   `json:"androidver"`      // Android version (for Android-specific handling)
+
+	// HAR mode configuration
+	HarEndpoint   string `json:"harendpoint"`   // HTTP endpoint to POST HarEntry JSON (for har mode)
+	HarFilterHost string `json:"harfilterhost"` // Host to filter by (for har mode, e.g. "baidu.com")
 }
 
 // NewConfig creates a new OpenSSL probe configuration.
@@ -163,8 +167,19 @@ func (c *Config) validateCaptureMode() error {
 		}
 
 		return nil
+	case handlers.ModeHar:
+		// HAR mode requires an HTTP endpoint to POST data to
+		c.CaptureMode = handlers.ModeHar
+		if c.HarEndpoint == "" {
+			return fmt.Errorf("har mode requires --har-endpoint to be set")
+		}
+		// Basic URL validation
+		if !strings.HasPrefix(c.HarEndpoint, "http://") && !strings.HasPrefix(c.HarEndpoint, "https://") {
+			return fmt.Errorf("har mode --har-endpoint must start with http:// or https://")
+		}
+		return nil
 	default:
-		return fmt.Errorf("unsupported capture mode: %s (supported: text, keylog, pcap)", mode)
+		return fmt.Errorf("unsupported capture mode: %s (supported: text, keylog, pcap, har)", mode)
 	}
 }
 

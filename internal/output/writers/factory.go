@@ -59,6 +59,11 @@ func (f *WriterFactory) CreateWriter(addr string, rotateConfig *RotateConfig) (O
 		return NewWebSocketWriter(addr)
 	}
 
+	// Check for HTTP/HTTPS protocol
+	if strings.HasPrefix(addr, "http://") || strings.HasPrefix(addr, "https://") {
+		return NewHttpPostWriter(addr)
+	}
+
 	// Default to file
 	config := FileWriterConfig{
 		Path:       addr,
